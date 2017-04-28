@@ -283,7 +283,9 @@ state.get('a', 'b').then(([ a, b ]) => {
 });
 ```
 
-...which will of course sequence things in either series or parallel depending on the dependency graph.
+...which will of course sequence things in either series or parallel depending on the dependency graph. One thing to 
+mention: `lazy-bones` will wait for already-in-flight requests to complete, so you don't have to worry about duplicate
+requests whether already-completed or in-progress.
 
 
 ## How can I track performance in order to optimize my data flows?

@@ -261,6 +261,31 @@ where the cost of each arc is calculated by maintaining an average of how long i
 means that you can provide duplicate ways to get to the same piece of data and automatically use the fastest path.
 
 
+## How can I retrieve two pieces of state at a time?
+
+`Promise.all` will work:
+
+```es6
+Promise.all([
+  state.a(),
+  state.b()
+]).then(([ a, b ]) => {
+  // Use the data
+});
+```
+
+...though both `a` and `b` in this scenario will independently calculate the optimal path. To calculate the most optimal
+retrieval path for `a` and `b` in tandem, there's also a `get` method:
+
+```es6
+state.get('a', 'b').then(([ a, b ]) => {
+  // Use the data
+});
+```
+
+...which will of course sequence things in either series or parallel depending on the dependency graph.
+
+
 ## How can I track performance in order to optimize my data flows?
 
 Since `lazy-bones` is already keeping track of timings, it also provides those timings via its `EventEmitter` interface:

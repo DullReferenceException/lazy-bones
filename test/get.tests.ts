@@ -1,4 +1,4 @@
-import LazyState from '../lib/lazy-bones';
+import LazyBones from '../lib/lazy-bones';
 
 import { expect } from 'chai';
 
@@ -6,7 +6,7 @@ type DataType = { foo: string }
 
 describe('The lazy-bones get method', () => {
   it('can return the result via a callback', done => {
-    const state = LazyState<DataType>({
+    const state = LazyBones<DataType, {}>({
       foo: () => 'bar'
     })();
 
@@ -17,7 +17,7 @@ describe('The lazy-bones get method', () => {
   });
 
   it('can return the result as a Promise', () => {
-    const state = LazyState<DataType>({
+    const state = LazyBones<DataType, {}>({
       foo: () => 'bar'
     })();
 

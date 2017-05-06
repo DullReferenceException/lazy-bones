@@ -1,4 +1,4 @@
-import LazyState from '../lib/lazy-bones';
+import LazyBones from '../lib/lazy-bones';
 
 import { expect } from 'chai';
 import { stub } from 'sinon';
@@ -7,7 +7,7 @@ describe('lazy-bones laziness', () => {
   it('avoids executing anything until invoked', done => {
     const fn = stub().returns('bar');
 
-    const state = LazyState({
+    const state = LazyBones({
       foo: fn
     })();
 
@@ -20,7 +20,7 @@ describe('lazy-bones laziness', () => {
   it('caches results', () => {
     const fn : (() => string) = stub().returns('bar');
 
-    const state = LazyState({
+    const state = LazyBones({
       foo: fn
     })();
 

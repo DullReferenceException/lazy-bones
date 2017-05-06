@@ -1,10 +1,10 @@
-import LazyState from '../lib/lazy-bones';
+import LazyBones from '../lib/lazy-bones';
 import { DataSourceSpec } from '../lib/model';
 
 import { expect } from 'chai';
 
 describe('lazy-bones error handling', () => {
-  const scenarios: Array<{ type: string, cfg: DataSourceSpec<{ a: number, b: number, c: number }> }> = [
+  const scenarios: Array<{ type: string, cfg: DataSourceSpec<{ a: number, b: number, c: number }, {}> }> = [
     {
       type: 'synchronous',
       cfg: {
@@ -33,7 +33,7 @@ describe('lazy-bones error handling', () => {
 
   scenarios.forEach(({ type, cfg }) => {
     describe(`of ${type} errors`, () => {
-      const state = LazyState(cfg)();
+      const state = LazyBones(cfg)();
 
       it('works for Promise-style callers', () => {
         return state.c().then(() => {

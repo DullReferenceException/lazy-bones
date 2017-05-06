@@ -96,15 +96,15 @@ intermediate values.
 
 ## What does this look like?
 
-First you need to define a constructor for your lazy state. There are two formats. One is `async.auto`-inspired, except
-it plays nicely with Promises and synchronous results as well:
+First you need to define your data source. The format of the definition is `async.auto`-inspired, except
+it plays nicely with Promises and synchronous results:
 
 ```es6
 // state.js
 
-const LazyState = require('lazy-bones');
+const LazyBones = require('lazy-bones');
 
-module.exports = LazyState({
+const DataSource = LazyBones({
   customer: ['customerId', ({ customerId }, cb) => {
     getCustomer(customerId, cb);
   }],
@@ -115,16 +115,18 @@ module.exports = LazyState({
     return prefs.likesPuzzles;
   }]
 });
+
+module.exports = DataSource;
 ```
 
-...but if you have a very complex app, this won't scale well. Additionally, sometimes there may be two different 
-pathways to the same dependency data, some which is known and some which is retrieved. To support more advanced
-scenarios, you can use this pattern:
+If you have a very complex app, having everything in one huge object literal would make things hard to read. 
+Additionally, sometimes there may be two different pathways to the same pieces of data, some which is known and some 
+which is retrieved. To support more advanced scenarios, you can use this pattern:
 
 ```es6
 // state.js
 
-const LazyState = require('lazy-bones');
+const LazyBones = require('lazy-bones');
 
 const accountId = require('./account-id');
 const account = require('./account');
@@ -132,12 +134,14 @@ const profile = require('./profile');
 const preferences = require('./preferences');
 const authToken = require('./auth-token');
 
-module.exports = LazyState({
+const DataSource = LazyBones({
   accountId,
   account,
   profile,
   authToken
 });
+
+module.exports = DataSource;
 
 
 // account.js
@@ -181,12 +185,13 @@ module.exports = [
 ```
 
 
-## How do I use this lazy state constructor?
+## How do I use the data source I've created?
 
-Each instance created from your lazy state constructor encapsulates the intermediate values cache and provides methods
-for retrieving pieces of data. It will follow your dependency tree and determine the most efficient path to your data
-if there are intermediate steps. To benefit from caching, you may want to preserve an instance of your state within a
-given scope, for example an express request/response. Here's an example usage:
+The data source is a function that can be used to construct an instance of a data set. You can optionally pass this
+function parameters that are specific to the data set instance. Each data set contains its own cache and provides 
+methods for retrieving pieces of data. It will follow your dependency tree and determine the most 
+efficient path to your data if there are intermediate steps. To benefit from caching, you may want to preserve a data
+set instance within a given lifetime, for example an express request/response. Here's an example usage:
 
 
 ```es6
@@ -233,8 +238,8 @@ module.exports = (req, res, next) => {
 
 ```
 
-Hopefully you can see how given an instance of a state, you can worry less about duplicated or unnecessary data fetches,
-and you can centralize all your state retrieval logic, even with different data entry points.
+Hopefully you can see how a data set instance lets you avoid worrying about duplicated or unnecessary data fetches,
+and you can centralize all your data retrieval logic, even when called from multiple places.
 
 
 ## What if there are no paths to my data?
@@ -292,13 +297,13 @@ whether already-completed or in-progress.
 Since `lazy-bones` is already keeping track of timings, it also provides those timings via its `EventEmitter` interface:
 
 ```es6
-const LazyState = require('lazy-bones');
+const LazyBones = require('lazy-bones');
 
-const State = LazyState({
+const DataSource = LazyBones({
   // ...
 });
 
-State.on('timing', ({ name, dependencies, waitStartTime, requestStartTime, requestEndTime, duration, totalDuration }) => {
+DataSource.on('timing', ({ name, dependencies, waitStartTime, requestStartTime, requestEndTime, duration, totalDuration }) => {
   logTimings(name, duration);
 });
 ```

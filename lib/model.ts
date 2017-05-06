@@ -1,5 +1,5 @@
-type DataSourceSpec<T> = {
-  [K in keyof T]?: DataItemSpec<T, T[K]>
+type DataSourceSpec<T, U> = {
+  [K in keyof T]: DataItemSpec<T & U, T[K]>
 }
 
 type DataItemSpec<T, V> =
@@ -37,9 +37,9 @@ type CallbackFn<T> = (err?: Error, value?: T) => void
 
 type MultiPathDataItemSpec<T, V> = Array<DependentFetchFn<T, V>>
 
-type DataSetConstructor<T> =
-  ((dependencies?: Dependencies<T>) => DataSet<T>)
-  & TypedEventEmitter<{ timing: TimingEvent<T> }>
+type DataSetConstructor<T, U> =
+  ((dependencies?: Dependencies<U>) => DataSet<T & U>)
+  & TypedEventEmitter<{ timing: TimingEvent<T & U> }>
 
 interface TypedEventEmitter<T> {
   addListener<K extends keyof T>(event: K, listener: (arg: T[K]) => any): this;

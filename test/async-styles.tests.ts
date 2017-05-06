@@ -1,10 +1,10 @@
-import LazyState from '../lib/lazy-bones';
+import LazyBones from '../lib/lazy-bones';
 
 import { expect } from 'chai';
 
 describe('lazy-bones methods', () => {
   it('can be synchronous return values', () => {
-    const state = LazyState({
+    const state = LazyBones({
       foo: () => 'bar'
     })();
 
@@ -14,7 +14,7 @@ describe('lazy-bones methods', () => {
   });
 
   it('can asynchronously provide values via callbacks', () => {
-    const state = LazyState({
+    const state = LazyBones({
       foo: cb => cb(null, 'bar')
     })();
 
@@ -24,7 +24,7 @@ describe('lazy-bones methods', () => {
   });
 
   it('can asynchronously provide values via Promises', () => {
-    const state = LazyState({
+    const state = LazyBones({
       foo: () => Promise.resolve('bar')
     })();
 

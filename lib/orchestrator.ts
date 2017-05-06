@@ -29,12 +29,12 @@ type StatsMap = Map<Function, Stats>;
 
 type OrchestratorEventEmitter<T> = TypedEventEmitter<{ timing: TimingEvent<T> }>;
 
-class Orchestrator<T> {
+class Orchestrator<T, U> {
   public readonly emitter: OrchestratorEventEmitter<T>;
   private readonly spec: NormalizedStateSpec<T>;
   private readonly stats: StatsMap;
 
-  constructor(spec: DataSourceSpec<T>) {
+  constructor(spec: DataSourceSpec<T, U>) {
     this.emitter = <OrchestratorEventEmitter<T>>new events.EventEmitter();
     this.spec = <NormalizedStateSpec<T>>mapObject(spec, (key : keyof T) => this.normalizeSpec(spec[key]));
     this.stats = new Map();
@@ -78,7 +78,7 @@ class Orchestrator<T> {
   }
 
   getInstance(values) {
-    return Orchestration<T>(this, values || {});
+    return Orchestration<T, U>(this, values || {});
   }
 
   resolve(key, cache, cb?) {
@@ -180,6 +180,11 @@ class Orchestrator<T> {
     return selfCost + dependencies.reduce((sum, dep: keyof T) => {
       let cost = 0;
       if (!(dep in cache)) {
+
+        if (!(dep in this.spec)) {
+          return Number.POSITIVE_INFINITY;
+        }
+
         const costedPaths = this.getCostedPaths(dep, cache);
         cost = costedPaths.reduce((champ, challenger) => challenger.cost < champ.cost ? challenger : champ).cost;
       }
@@ -193,7 +198,7 @@ class Orchestrator<T> {
   }
 }
 
-function Orchestration<T>(orchestrator: Orchestrator<T>, initialData: { [K in keyof T]?: T[K] }) : DataSet<T> {
+function Orchestration<T, U>(orchestrator: Orchestrator<T, U>, initialData: { [K in keyof T]?: T[K] }) : DataSet<T> {
   const cache = mapObject(initialData, key => Promise.resolve(initialData[key]));
 
   const methods: { [K in keyof T]?: Promise<T[K]> } = orchestrator.mapSpec(key => {

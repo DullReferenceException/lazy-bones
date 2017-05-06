@@ -1,8 +1,7 @@
-import LazyState from '../lib/lazy-bones';
-
 import { expect } from 'chai';
-import { spy } from 'sinon';
-import { MultiPathDataItemSpec } from "../lib/model";
+import { spy, stub } from 'sinon';
+import { DataSourceSpec, MultiPathDataItemSpec } from "../lib/model";
+import LazyBones from "../lib/lazy-bones";
 
 describe('lazy-bones path optimization', () => {
   it('starts by assuming all costs are equal, thus selecting the smallest number of steps', () => {
@@ -25,7 +24,7 @@ describe('lazy-bones path optimization', () => {
       ['d', 'e', ({ d, e }) => d + e]
     ];
 
-    const state = LazyState<DataTypes>({
+    const state = LazyBones<DataTypes, {}>({
       a, b, c, d, e,
       target
     })();
@@ -43,7 +42,7 @@ describe('lazy-bones path optimization', () => {
 
     const a = spy(cb => setTimeout(() => cb(null, 5), 10));
     const b = spy(cb => setTimeout(() => cb(null, 5), 20));
-    const State = LazyState<DataTypes>({
+    const State = LazyBones<DataTypes, {}>({
       a, b,
       target: <MultiPathDataItemSpec<DataTypes, number>>[
         ['a', ({ a }) => a * 2],
@@ -88,7 +87,7 @@ describe('lazy-bones path optimization', () => {
       setTimeout(() => cb(null, 5), 10)
     });
     const b = spy(cb => setTimeout(() => cb(null, 5), 20));
-    const State = LazyState<DataTypes>({
+    const State = LazyBones<DataTypes, {}>({
       a, b,
       target: <MultiPathDataItemSpec<DataTypes, number>>[
         ['a', ({ a }) => a * 2],
@@ -165,7 +164,7 @@ describe('lazy-bones path optimization', () => {
       ['e', ({ e }) => e * 3]
     ];
 
-    const state = LazyState<DataTypes>({
+    const state = LazyBones<DataTypes, {}>({
       a: ['a1', 'a2', 'a3', a],
       a1: () => 1,
       a2: () => 1,
@@ -179,5 +178,26 @@ describe('lazy-bones path optimization', () => {
       expect(value).to.equal(30);
       expect(a).to.have.not.been.called;
     });
-  })
+  });
+
+  it('supports multiple paths, some of which are unavailable', () => {
+    type DataType = { account: object };
+    type VarsType = { accountId: string, accountNum: number };
+
+    const getAccountById: (deps: { id: string }) => Promise<object> = stub().returns(Promise.resolve({}));
+    const getAccountByNumber: (deps: { num: number }) => Promise<object> = stub().returns(Promise.resolve({}));
+
+    const account: MultiPathDataItemSpec<DataType & VarsType, object> = [
+      ['accountId', getAccountById],
+      ['accountNum', getAccountByNumber]
+    ];
+
+    const DataSource = LazyBones<DataType, VarsType>({ account });
+
+    const dataSet = DataSource({ accountNum: 283423 });
+
+    return dataSet.account().then(() => {
+      expect(getAccountById).to.have.not.been.called;
+    });
+  });
 });

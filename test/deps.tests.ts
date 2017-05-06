@@ -1,10 +1,10 @@
-import LazyState from '../lib/lazy-bones';
+import LazyBones from '../lib/lazy-bones';
 
 import { expect } from 'chai';
 
 describe('lazy-bones dependency resolution', () => {
   it('works for direct dependencies', () => {
-    const state = LazyState({
+    const state = LazyBones({
       a: () => 2,
       b: () => 3,
       c: ['a', 'b', ({ a, b }) => a * b]
@@ -16,7 +16,7 @@ describe('lazy-bones dependency resolution', () => {
   });
 
   it('works recursively', () => {
-    const state = LazyState({
+    const state = LazyBones({
       a: () => 2,
       b: () => 3,
       c: ['a', 'b', ({ a, b }) => a * b],

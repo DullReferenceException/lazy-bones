@@ -1,8 +1,9 @@
+import * as events from 'events';
 import * as Promise from 'bluebird';
 import {
-  StateSpec,
-  Dependencies, DependentFn, DependencyFn,
-  StateInstance
+  DataSourceSpec,
+  Dependencies, DependentFetchFn, FetchFnWithDeps,
+  DataSet, TypedEventEmitter, TimingEvent
 } from './model';
 import mapObject from './map-object';
 
@@ -21,16 +22,20 @@ type NormalizedSpec<T, V> = {
 
 type NormalizedPath<T, V> = {
   dependencies: Array<keyof T>,
-  fn: DependencyFn<T, V>
+  fn: FetchFnWithDeps<T, V>
 }
 
 type StatsMap = Map<Function, Stats>;
 
+type OrchestratorEventEmitter<T> = TypedEventEmitter<{ timing: TimingEvent<T> }>;
+
 class Orchestrator<T> {
+  public readonly emitter: OrchestratorEventEmitter<T>;
   private readonly spec: NormalizedStateSpec<T>;
   private readonly stats: StatsMap;
 
-  constructor(spec: StateSpec<T>) {
+  constructor(spec: DataSourceSpec<T>) {
+    this.emitter = <OrchestratorEventEmitter<T>>new events.EventEmitter();
     this.spec = <NormalizedStateSpec<T>>mapObject(spec, (key : keyof T) => this.normalizeSpec(spec[key]));
     this.stats = new Map();
   }
@@ -61,9 +66,14 @@ class Orchestrator<T> {
     };
   }
 
-  normalizeDependentFn<V>(depFn : DependentFn<T, V>) : NormalizedPath<T, V> {
+  normalizeDependentFn<V>(depFn : DependentFetchFn<T, V>) : NormalizedPath<T, V> {
     const dependencies = <Array<keyof T>>(depFn.slice(0, -1));
-    const fn = <DependencyFn<T, V>>(depFn[depFn.length - 1]);
+
+    const fn = <FetchFnWithDeps<T, V>>(depFn[depFn.length - 1]);
+    if (typeof(fn) !== 'function') {
+      throw new Error(`Invalid dependent function specification ${JSON.stringify(depFn)}.`);
+    }
+
     return { dependencies, fn };
   }
 
@@ -72,25 +82,57 @@ class Orchestrator<T> {
   }
 
   resolve(key, cache, cb?) {
-    const promise = cache[key] || (cache[key] = this.fetchResult(key, cache)).catch(err => {
-      delete cache[key];
-      throw err;
-    });
+    if (!(key in cache)) {
+      if (!(key in this.spec)) {
+        return Promise.reject(`${key} is not defined in the data source`);
+      }
 
-    return Promise.resolve(promise).asCallback(cb);
+      cache[key] = this.fetchResult(key, cache).catch(err => {
+        delete cache[key];
+        throw err;
+      });
+    }
+
+    return cache[key].asCallback(cb);
   }
 
   fetchResult(key, cache) {
-    const paths = this.getPrioritizedPaths(key, cache);
-    return paths.reduce((chain, { path: { dependencies, fn } }) => {
-      return chain.catch(() => this.fetchDependentResult(cache, dependencies, fn));
-    }, Promise.reject());
+    const costedPaths = this.getPrioritizedPaths(key, cache);
+    return costedPaths.slice(1).reduce((chain, { path }) => {
+      return chain.catch(() => this.resolvePath(cache, key, path));
+    }, this.resolvePath(cache, key, costedPaths[0].path));
   }
 
-  fetchDependentResult(cache, dependencies, fn) {
-    return Promise.all(dependencies.map(dep => this.resolve(dep, cache))).then((values) => {
-      const depsObj = dependencies.reduce((result, dep, i) => Object.assign(result, { [dep]: values[i] }), {});
-      return this.execute(fn, depsObj);
+  resolvePath(cache, key, { dependencies, fn }) {
+    return this.fetchDependentResult(cache, key, dependencies, fn);
+  }
+
+  fetchDependentResult(cache, name, dependencies, fn) {
+    const requestStart = Date.now();
+    let fetchStart = requestStart;
+
+    const task = dependencies.length ?
+      Promise.all(dependencies.map(dep => this.resolve(dep, cache))).then((values) => {
+        const depsObj = dependencies.reduce((result, dep, i) => Object.assign(result, { [dep]: values[i] }), {});
+
+        fetchStart = Date.now();
+
+        return this.execute(fn, depsObj);
+      }) : this.execute(fn, {});
+
+    return task.then(result => {
+      const now = Date.now();
+      this.emitter.emit('timing', {
+        name,
+        dependencies,
+        requestStart,
+        waitDuration: fetchStart - requestStart,
+        fetchStart,
+        fetchDuration: now - fetchStart,
+        totalDuration: now - requestStart
+      });
+
+      return result;
     });
   }
 
@@ -98,7 +140,7 @@ class Orchestrator<T> {
     const startTime = Date.now();
     const promise = (fn.length > 1)
       ? Promise.fromCallback(cb => fn(deps, cb))
-      : Promise.resolve(fn(deps));
+      : Promise.try(() => fn(deps));
 
     return promise.then(result => {
       this.recordCost(fn, Date.now() - startTime);
@@ -151,7 +193,7 @@ class Orchestrator<T> {
   }
 }
 
-function Orchestration<T>(orchestrator: Orchestrator<T>, initialData: { [K in keyof T]?: T[K] }) : StateInstance<T> {
+function Orchestration<T>(orchestrator: Orchestrator<T>, initialData: { [K in keyof T]?: T[K] }) : DataSet<T> {
   const cache = mapObject(initialData, key => Promise.resolve(initialData[key]));
 
   const methods: { [K in keyof T]?: Promise<T[K]> } = orchestrator.mapSpec(key => {
@@ -163,10 +205,10 @@ function Orchestration<T>(orchestrator: Orchestrator<T>, initialData: { [K in ke
   return Object.assign(methods, {
     get(...args) {
       if (typeof(args[args.length - 1]) === 'function') {
-        return Promise.resolve(orchestrator.fetchDependentResult(cache, args.slice(0, -1), results => results))
+        return Promise.resolve(orchestrator.fetchDependentResult(cache, null, args.slice(0, -1), results => results))
           .asCallback(args[args.length - 1]);
       } else {
-        return orchestrator.fetchDependentResult(cache, args, results => results);
+        return orchestrator.fetchDependentResult(cache, null, args, results => results);
       }
     }
   });

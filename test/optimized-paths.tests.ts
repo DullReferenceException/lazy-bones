@@ -2,7 +2,7 @@ import LazyState from '../lib/lazy-bones';
 
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import { MultiChoiceDataSpec } from "../lib/model";
+import { MultiPathDataItemSpec } from "../lib/model";
 
 describe('lazy-bones path optimization', () => {
   it('starts by assuming all costs are equal, thus selecting the smallest number of steps', () => {
@@ -20,7 +20,7 @@ describe('lazy-bones path optimization', () => {
     const c: () => number = spy(() => 3);
     const d: () => number = spy(() => 3);
     const e: () => number = spy(() => 3);
-    const target: MultiChoiceDataSpec<DataTypes, number> = [
+    const target: MultiPathDataItemSpec<DataTypes, number> = [
       ['a', 'b', 'c', ({ a, b, c }) => a + b + c],
       ['d', 'e', ({ d, e }) => d + e]
     ];
@@ -45,7 +45,7 @@ describe('lazy-bones path optimization', () => {
     const b = spy(cb => setTimeout(() => cb(null, 5), 20));
     const State = LazyState<DataTypes>({
       a, b,
-      target: <MultiChoiceDataSpec<DataTypes, number>>[
+      target: <MultiPathDataItemSpec<DataTypes, number>>[
         ['a', ({ a }) => a * 2],
         ['b', ({ b }) => b * 2]
       ]
@@ -90,7 +90,7 @@ describe('lazy-bones path optimization', () => {
     const b = spy(cb => setTimeout(() => cb(null, 5), 20));
     const State = LazyState<DataTypes>({
       a, b,
-      target: <MultiChoiceDataSpec<DataTypes, number>>[
+      target: <MultiPathDataItemSpec<DataTypes, number>>[
         ['a', ({ a }) => a * 2],
         ['b', ({ b }) => b * 2]
       ]
@@ -154,13 +154,13 @@ describe('lazy-bones path optimization', () => {
     const a = spy(({ a1, a2, a3 }) => a1 + a2 + a3);
     const b: () => number = spy(() => 2);
     const c: () => number = spy(() => 3);
-    const d : MultiChoiceDataSpec<DataTypes, number> = [
+    const d : MultiPathDataItemSpec<DataTypes, number> = [
       ['a', ({ a }) => a * 2],
       ['b', 'c', ({ b, c }) => (b + c) * 2],
       ['a', 'b', 'c', ({ b, c }) => (b + c) * 2]
     ];
     const e = spy(() => 10);
-    const target : MultiChoiceDataSpec<DataTypes, number> = [
+    const target : MultiPathDataItemSpec<DataTypes, number> = [
       ['d', ({ d }) => d * 3],
       ['e', ({ e }) => e * 3]
     ];

@@ -1,30 +1,30 @@
-type StateSpec<T> = {
-  [K in keyof T]?: DataSpec<T, T[K]>
+type DataSourceSpec<T> = {
+  [K in keyof T]?: DataItemSpec<T, T[K]>
 }
 
-type DataSpec<T, V> =
-  DependencyFreeFn<V>
-  | DependentFn<T, V>
-  | MultiChoiceDataSpec<T, V>
+type DataItemSpec<T, V> =
+  DependencyFreeFetchFn<V>
+  | DependentFetchFn<T, V>
+  | MultiPathDataItemSpec<T, V>
 
-type DependencyFreeFn<T> =
+type DependencyFreeFetchFn<T> =
   ((cb: CallbackFn<T>) => void)
   | (() => T)
   | (() => Promise<T>)
 
-type DependentFn<T, V> =
-  [keyof T, DependencyFn<T, V>]
-  | [keyof T, keyof T, DependencyFn<T, V>]
-  | [keyof T, keyof T, keyof T, DependencyFn<T, V>]
-  | [keyof T, keyof T, keyof T, keyof T, DependencyFn<T, V>]
-  | [keyof T, keyof T, keyof T, keyof T, keyof T, DependencyFn<T, V>]
-  | [keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, DependencyFn<T, V>]
-  | [keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, DependencyFn<T, V>]
-  | [keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, DependencyFn<T, V>]
-  | [keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, DependencyFn<T, V>]
-  | [keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, DependencyFn<T, V>]
+type DependentFetchFn<T, V> =
+  [keyof T, FetchFnWithDeps<T, V>]
+  | [keyof T, keyof T, FetchFnWithDeps<T, V>]
+  | [keyof T, keyof T, keyof T, FetchFnWithDeps<T, V>]
+  | [keyof T, keyof T, keyof T, keyof T, FetchFnWithDeps<T, V>]
+  | [keyof T, keyof T, keyof T, keyof T, keyof T, FetchFnWithDeps<T, V>]
+  | [keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, FetchFnWithDeps<T, V>]
+  | [keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, FetchFnWithDeps<T, V>]
+  | [keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, FetchFnWithDeps<T, V>]
+  | [keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, FetchFnWithDeps<T, V>]
+  | [keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, keyof T, FetchFnWithDeps<T, V>]
 
-type DependencyFn<T, V> =
+type FetchFnWithDeps<T, V> =
   ((deps: Dependencies<T>) => V)
   | ((deps: Dependencies<T>) => Promise<V>)
   | ((deps: Dependencies<T>, cb : CallbackFn<V>) => void)
@@ -35,17 +35,48 @@ type Dependencies<T> = {
 
 type CallbackFn<T> = (err?: Error, value?: T) => void
 
-type MultiChoiceDataSpec<T, V> = Array<DependentFn<T, V>>
+type MultiPathDataItemSpec<T, V> = Array<DependentFetchFn<T, V>>
 
-type StateConstructor<T> = (dependencies?: Dependencies<T>) => StateInstance<T>
+type DataSetConstructor<T> =
+  ((dependencies?: Dependencies<T>) => DataSet<T>)
+  & TypedEventEmitter<{ timing: TimingEvent<T> }>
 
-type StateInstance<T> = {
+interface TypedEventEmitter<T> {
+  addListener<K extends keyof T>(event: K, listener: (arg: T[K]) => any): this;
+  on<K extends keyof T>(event: K, listener: (arg: T[K]) => any): this;
+  once<K extends keyof T>(event: K, listener: (arg: T[K]) => any): this;
+  removeListener<K extends keyof T>(event: K, listener: (arg: T[K]) => any): this;
+  removeAllListeners<K extends keyof T>(event?: K): this;
+  setMaxListeners(n: number): this;
+  getMaxListeners(): number;
+  listeners<K extends keyof T>(event: K): ((arg: T[K]) => any)[];
+  emit<K extends keyof T>(event: K, arg: T[K]): boolean;
+  listenerCount<K extends keyof T>(type: K): number;
+  // Added in Node 6...
+  prependListener<K extends keyof T>(event: K, listener: (arg: T[K]) => any): this;
+  prependOnceListener<K extends keyof T>(event: K, listener: (arg: T[K]) => any): this;
+  eventNames(): (string | symbol)[];
+}
+
+interface TimingEvent<T> {
+  name: keyof T,
+  dependencies: Array<keyof T>,
+  requestStart: number,
+  waitDuration: number,
+  fetchStart: number,
+  fetchDuration: number,
+  totalDuration: number
+}
+
+type DataSet<T> = {
   [K in keyof T]: (cb?: CallbackFn<T[K]>) => Promise<T[K]>
 } & {
   get: (...args: Array<keyof T | CallbackFn<Dependencies<T>>>) => Promise<Dependencies<T>>
 }
 
 export {
-  StateSpec, DataSpec, MultiChoiceDataSpec,
-  DependencyFreeFn, DependentFn, Dependencies, DependencyFn, CallbackFn,
-  StateConstructor, StateInstance }
+  TypedEventEmitter, TimingEvent,
+  DataSourceSpec, DataItemSpec, MultiPathDataItemSpec,
+  DependencyFreeFetchFn, DependentFetchFn, Dependencies, FetchFnWithDeps, CallbackFn,
+  DataSetConstructor, DataSet
+}

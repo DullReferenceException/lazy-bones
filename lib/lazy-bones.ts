@@ -1,9 +1,12 @@
-import { StateSpec, StateConstructor } from './model';
+import { DataSourceSpec, DataSetConstructor } from './model';
 import Orchestrator from './orchestrator';
 
-function LazyBones<T>(spec: StateSpec<T>) : StateConstructor<T> {
+function LazyBones<T>(spec: DataSourceSpec<T>) : DataSetConstructor<T> {
   const orchestrator = new Orchestrator(spec);
-  return data => orchestrator.getInstance(data);
+
+  let constructor = data => orchestrator.getInstance(data);
+
+  return Object.setPrototypeOf(constructor, orchestrator.emitter);
 }
 
 export default LazyBones;

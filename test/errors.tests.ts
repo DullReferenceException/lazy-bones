@@ -1,69 +1,24 @@
-import LazyState from '../lib/lazy-bones';
-import { StateSpec } from '../lib/model';
-
+import LazyBones from '../lib/lazy-bones';
 import { expect } from 'chai';
+import { DataSet, DataSetConstructor } from "../lib/model";
 
-describe('lazy-bones error handling', () => {
-  const scenarios: Array<{ type: string, cfg: StateSpec<{ a: number, b: number, c: number }> }> = [
-    {
-      type: 'synchronous',
-      cfg: {
-        a: () => 2,
-        b: () => { throw new Error('Boom!') },
-        c: ['a', 'b', ({ a, b }) => a * b]
-      }
-    },
-    {
-      type: 'callback',
-      cfg: {
-        a: () => 2,
-        b: cb => { cb(new Error('Boom!')) },
-        c: ['a', 'b', ({ a, b }) => a * b]
-      }
-    },
-    {
-      type: 'Promise',
-      cfg: {
-        a: () => 2,
-        b: () => Promise.reject(new Error('Boom!')),
-        c: ['a', 'b', ({ a, b }) => a * b]
-      }
-    }
-  ];
+describe('lazy-bones errors when', () => {
+  it('is has a data item spec with no valid paths', () => {
+    expect(() => LazyBones<{ data: number }>({
+      data: []
+    })).to.throw(Error);
+  });
 
-  scenarios.forEach(({ type, cfg }) => {
-    describe(`of ${type} errors`, () => {
-      const state = LazyState(cfg)();
+  it('an attempt to load an invalid key occurs', () => {
+    const DataSource = LazyBones({ a: () => 1 });
 
-      it('works for Promise-style callers', () => {
-        return state.c().then(() => {
-          throw new Error('Expected error but did not get one');
-        }, err => {
-          expect(err).to.exist;
-        });
-      });
+    // TypeScript blocks this, so cast to force an invalid state
+    const dataSet = <any>DataSource();
 
-      it('works for Callback-style callers', done => {
-        state.c(err => {
-          expect(err).to.exist;
-          done();
-        });
-      });
-
-      it('works for Promise-style get callers', () => {
-        return state.get('c').then(() => {
-          throw new Error('Expected error but did not get one');
-        }, err => {
-          expect(err).to.exist;
-        });
-      });
-
-      it('works for callback-style get callers', done => {
-        state.get('c', err => {
-          expect(err).to.exist;
-          done();
-        });
-      });
+    return dataSet.get('b').then(() => {
+      throw new Error('Unexpected successful call');
+    }, err => {
+      expect(err).to.exist;
     });
   });
 });

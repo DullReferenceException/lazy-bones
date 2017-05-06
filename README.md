@@ -274,18 +274,17 @@ Promise.all([
 });
 ```
 
-...though both `a` and `b` in this scenario will independently calculate the optimal path. To calculate the most optimal
-retrieval path for `a` and `b` in tandem, there's also a `get` method:
+There's also a `get` method:
 
 ```es6
-state.get('a', 'b').then(([ a, b ]) => {
+state.get('a', 'b').then(({ a, b }) => {
   // Use the data
 });
 ```
 
-...which will of course sequence things in either series or parallel depending on the dependency graph. One thing to 
-mention: `lazy-bones` will wait for already-in-flight requests to complete, so you don't have to worry about duplicate
-requests whether already-completed or in-progress.
+...which will sequence things in either series or parallel depending on the dependency graph. One thing to mention: 
+`lazy-bones` will wait for already-in-flight requests to complete, so you don't have to worry about duplicate requests
+whether already-completed or in-progress.
 
 
 ## How can I track performance in order to optimize my data flows?

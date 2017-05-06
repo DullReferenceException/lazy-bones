@@ -71,7 +71,8 @@ interface TimingEvent<T> {
 type DataSet<T> = {
   [K in keyof T]: (cb?: CallbackFn<T[K]>) => Promise<T[K]>
 } & {
-  get: (...args: Array<keyof T | CallbackFn<Dependencies<T>>>) => Promise<Dependencies<T>>
+  get: (...args: Array<keyof T | CallbackFn<Dependencies<T>>>) => Promise<Dependencies<T>>,
+  toJSON: () => { [K in keyof T]?: T[K] | Promise<T[K]> }
 }
 
 export {

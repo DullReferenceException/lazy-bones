@@ -87,13 +87,15 @@ class Orchestrator<T, U> {
         return Promise.reject(`${key} is not defined in the data source`);
       }
 
-      cache[key] = this.fetchResult(key, cache).catch(err => {
+      cache[key] = this.fetchResult(key, cache).then(result => {
+        return cache[key] = result;
+      }, err => {
         delete cache[key];
         throw err;
       });
     }
 
-    return cache[key].asCallback(cb);
+    return Promise.resolve(cache[key]).asCallback(cb);
   }
 
   fetchResult(key, cache) {
@@ -199,7 +201,7 @@ class Orchestrator<T, U> {
 }
 
 function Orchestration<T, U>(orchestrator: Orchestrator<T, U>, initialData: { [K in keyof T]?: T[K] }) : DataSet<T> {
-  const cache = mapObject(initialData, key => Promise.resolve(initialData[key]));
+  const cache = initialData;
 
   const methods: { [K in keyof T]?: Promise<T[K]> } = orchestrator.mapSpec(key => {
     return cb => {
@@ -215,6 +217,9 @@ function Orchestration<T, U>(orchestrator: Orchestrator<T, U>, initialData: { [K
       } else {
         return orchestrator.fetchDependentResult(cache, null, args, results => results);
       }
+    },
+    toJSON() {
+      return cache;
     }
   });
 }

@@ -8,6 +8,9 @@
     "url": "git+ssh://git@github.com/DullReferenceException/lazy-bones.git"
   },
   "author": "Jacob Page <jacob.h.page@gmail.com>",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.com/"
+  },
   "devDependencies": {
     "@types/mocha": "^2.2.41",
     "@types/node": "^7.0.18",

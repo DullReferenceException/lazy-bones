@@ -188,10 +188,78 @@ module.exports = [
 ## How do I use the data source I've created?
 
 The data source is a function that can be used to construct an instance of a data set. You can optionally pass this
-function parameters that are specific to the data set instance. Each data set contains its own cache and provides 
-methods for retrieving pieces of data. It will follow your dependency tree and determine the most 
-efficient path to your data if there are intermediate steps. To benefit from caching, you may want to preserve a data
-set instance within a given lifetime, for example an express request/response. Here's an example usage:
+function parameters that are specific to the data set instance. 
+
+```es6
+const dataSet = DataSource({ profileId: req.query.profileId });
+```
+
+Each data set contains its own cache and provides methods for retrieving pieces of data. 
+
+
+## How do I use a data set?
+
+Each definition in your data source maps to a method in the data set. These methods automatically take care of caching
+results and fetching dependencies. Although all methods return Promises, you can also use node-style callbacks.
+
+```es6
+const DataSource = LazyBones({
+  customer: ['customerId', ({ customerId }, cb) => {
+    getCustomer(customerId, cb);
+  }],
+  preferences: ['customer', ({ customer }) => {
+    return getPreferences(customer.preferencesKey); // This returns a Promise
+  }],
+  likesPuzzles: ['preferences', ({ preferences }) => {
+    return prefs.likesPuzzles;
+  }]
+});
+
+const dataSet = DataSource({ customerId: 293538 });
+
+// Promise style
+dataSet.likesPuzzles().then(likesPuzzles => {
+  // ...
+}, err => {
+  // ...
+});
+
+// Callback style
+dataSet.likesPuzzles((err, likesPuzzles) => {
+  if (err) {
+    // ...
+  } else {
+    // ...
+  }
+});
+
+```
+
+As a convenience for fetching multiple things in parallel, there's also a `get` method:
+
+```es6
+// Promise style
+dataSet.get('preferences', 'likesPuzzles').then({ preferences, likesPuzzles }) => {
+  // ...
+}, err => {
+  // ...
+});
+
+// Callback style
+dataSet.get('preferences', 'likesPuzzles', (err, data) => {
+  if (err) {
+    // ...
+  } else {
+    const { preferences, likesPuzzles } = data;
+    // ...
+  }
+});
+
+```
+
+The data set will automatically inspect your dependency tree and determine the most efficient path to your data if there
+are intermediate steps. To benefit from caching, you should preserve a data set instance within a given lifetime, for
+example an express request/response. Here's an example data set usage with Express middleware:
 
 
 ```es6

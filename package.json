@@ -1,6 +1,6 @@
 {
   "name": "lazy-bones",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Declare how to get all your data in one place, then lazily get just the parts you need.",
   "license": "MIT",
   "repository": {

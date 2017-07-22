@@ -3,7 +3,7 @@ import * as Promise from 'bluebird';
 import {
   DataSourceSpec,
   Dependencies, DependentFetchFn, FetchFnWithDeps,
-  DataSet, TypedEventEmitter, TimingEvent
+  TypedEventEmitter, TimingEvent
 } from './model';
 import mapObject from './map-object';
 
@@ -75,10 +75,6 @@ class Orchestrator<T, U> {
     }
 
     return { dependencies, fn };
-  }
-
-  getInstance(values) {
-    return Orchestration<T, U>(this, values || {});
   }
 
   resolve(key, cache, cb?) {
@@ -198,30 +194,6 @@ class Orchestrator<T, U> {
   mapSpec(fn) {
     return mapObject(this.spec, fn);
   }
-}
-
-function Orchestration<T, U>(orchestrator: Orchestrator<T, U>, initialData: { [K in keyof T]?: T[K] }) : DataSet<T> {
-  const cache = initialData;
-
-  const methods: { [K in keyof T]?: Promise<T[K]> } = orchestrator.mapSpec(key => {
-    return cb => {
-      return orchestrator.resolve(key, cache, cb);
-    };
-  });
-
-  return Object.assign(methods, {
-    get(...args) {
-      if (typeof(args[args.length - 1]) === 'function') {
-        return Promise.resolve(orchestrator.fetchDependentResult(cache, null, args.slice(0, -1), results => results))
-          .asCallback(args[args.length - 1]);
-      } else {
-        return orchestrator.fetchDependentResult(cache, null, args, results => results);
-      }
-    },
-    toJSON() {
-      return cache;
-    }
-  });
 }
 
 export default Orchestrator;

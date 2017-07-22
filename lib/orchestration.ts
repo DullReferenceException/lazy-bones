@@ -9,8 +9,10 @@ function Orchestration<T, U>(orchestrator: Orchestrator<T, U>) : ((initialData :
     this.cache = Object.assign({}, initialData || {});
   }
 
-  Constructor.prototype = orchestrator.mapSpec(key => function(cb) {
-    return orchestrator.resolve(key, this.cache, cb);
+  Constructor.prototype = orchestrator.mapSpec(function(key) {
+    return function (cb) {
+      return orchestrator.resolve(key, this.cache, cb);
+    }
   });
 
   Object.assign(Constructor.prototype, {

@@ -45,6 +45,8 @@ describe('The lazy-bones timing event', () => {
     const tasks = dataSet.d();
 
     return Promise.resolve().then(() => {
+      return Promise.resolve()
+    }).then(() => {
       clock.tick(waitTimes.a + waitTimes.b + waitTimes.c + waitTimes.d);
       return tasks;
     }).then(result => {

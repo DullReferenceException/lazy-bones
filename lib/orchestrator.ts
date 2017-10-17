@@ -95,10 +95,17 @@ class Orchestrator<T, U> {
   }
 
   fetchResult(key, cache) {
-    const costedPaths = this.getPrioritizedPaths(key, cache);
-    return costedPaths.slice(1).reduce((chain, { path }) => {
-      return chain.catch(() => this.resolvePath(cache, key, path));
-    }, this.resolvePath(cache, key, costedPaths[0].path));
+    return this.getPrioritizedPaths(key, cache).reduce((chain, { cost, path }) => {
+      const execution = cost === Number.POSITIVE_INFINITY
+        ? () => Promise.reject(`Cannot resolve ${key}`)
+        : () => this.resolvePath(cache, key, path);
+
+      if (chain) {
+        return (chain as Promise).catch(execution);
+      } else {
+        return execution();
+      }
+    }, null);
   }
 
   resolvePath(cache, key, { dependencies, fn }) {

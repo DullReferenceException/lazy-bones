@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { spy, stub } from 'sinon';
-import { DataSourceSpec, MultiPathDataItemSpec } from "../lib/model";
+import { MultiPathDataItemSpec } from "../lib/model";
 import LazyBones from "../lib/lazy-bones";
 
 describe('lazy-bones path optimization', () => {
@@ -184,8 +184,8 @@ describe('lazy-bones path optimization', () => {
     type DataType = { account: object };
     type VarsType = { accountId: string, accountNum: number };
 
-    const getAccountById: (deps: { id: string }) => Promise<object> = stub().returns(Promise.resolve({}));
-    const getAccountByNumber: (deps: { num: number }) => Promise<object> = stub().returns(Promise.resolve({}));
+    const getAccountById = stub().returns(Promise.resolve({}));
+    const getAccountByNumber = stub().returns(Promise.resolve({}));
 
     const account: MultiPathDataItemSpec<DataType & VarsType, object> = [
       ['accountId', getAccountById],
@@ -198,6 +198,31 @@ describe('lazy-bones path optimization', () => {
 
     return dataSet.account().then(() => {
       expect(getAccountById).to.have.not.been.called;
+    });
+  });
+
+  it('supports multiple paths, rejecting those which are circular', () => {
+    type DataType = { client: object, authToken: string };
+    type ParamsType = { accountId: string, authToken?: string };
+
+    const getClientByAuthToken = stub().returns(Promise.resolve({}));
+    const getClientByAccountId = stub().returns(Promise.resolve({}));
+
+    const client: MultiPathDataItemSpec<DataType & ParamsType, object> = [
+      ['authToken', getClientByAuthToken],
+      ['accountId', getClientByAccountId]
+    ];
+
+    const DataSource = LazyBones<DataType, ParamsType>({
+      client,
+      'authToken': ['client', ({ client }) => `some-token`]
+    });
+
+    const accountId = '29857283';
+    const dataSet = DataSource({ accountId });
+
+    return dataSet.client().then(() => {
+      expect(getClientByAccountId).to.have.been.calledWithMatch({ accountId })
     });
   });
 });

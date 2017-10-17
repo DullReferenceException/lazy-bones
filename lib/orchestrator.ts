@@ -159,19 +159,22 @@ class Orchestrator<T, U> {
   }
 
   getPrioritizedPaths(key, cache) {
-    const costedPaths = this.getCostedPaths(key, cache);
+    const visited = {};
+    const costedPaths = this.getCostedPaths(key, cache, visited);
     costedPaths.sort(({ cost: costA }, { cost: costB }) => costA - costB);
     return costedPaths;
   }
 
-  getCostedPaths(key, cache) {
+  getCostedPaths(key, cache, visited) {
+    visited = Object.assign({}, visited, { [key]: true });
+
     return this
       .spec[key]
       .paths
-      .map(path => ({ cost: this.getCost(path, cache), path }));
+      .map(path => ({ cost: this.getCost(path, cache, visited), path }));
   }
 
-  getCost<V>({ dependencies, fn }, cache: { [K in keyof T]: Promise<T[K]> }) : number {
+  getCost<V>({ dependencies, fn }, cache: { [K in keyof T]: Promise<T[K]> }, visited: { [key: string]: boolean }) : number {
     const stats = this.stats.get(fn);
     const selfCost = (stats && stats.avg) || Number.EPSILON;
 
@@ -179,11 +182,11 @@ class Orchestrator<T, U> {
       let cost = 0;
       if (!(dep in cache)) {
 
-        if (!(dep in this.spec)) {
+        if (!(dep in this.spec) || dep in visited) {
           return Number.POSITIVE_INFINITY;
         }
 
-        const costedPaths = this.getCostedPaths(dep, cache);
+        const costedPaths = this.getCostedPaths(dep, cache, visited);
         cost = costedPaths.reduce((champ, challenger) => challenger.cost < champ.cost ? challenger : champ).cost;
       }
 

@@ -101,7 +101,7 @@ class Orchestrator<T, U> {
       return Promise.reject(`Cannot resolve ${key}`);
     }
 
-    return reachablePaths.reduce((chain, { path }) => {
+    return reachablePaths.slice(1).reduce((chain, { path }) => {
       return chain.catch(() => {
         return this.resolvePath(cache, key, path);
       });

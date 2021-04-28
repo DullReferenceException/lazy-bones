@@ -30,6 +30,6 @@
   "scripts": {
     "test": "nyc --reporter=lcov --reporter=text mocha -r ts-node/register ./test --recursive",
     "build": "tsc --p ./tsconfig.json",
-    "prepublish": "npm test && npm run build"
+    "prepublishOnly": "npm test && npm run build"
   }
 }
